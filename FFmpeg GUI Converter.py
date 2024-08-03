@@ -1,5 +1,5 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QDesktopWidget, QFileDialog, QErrorMessage
-from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread
+from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt
 
 import shutil
 import math
@@ -36,6 +36,7 @@ class FFmpegWidget(QWidget):
 
     def initUI(self):
         self.setWindowTitle("FFmpeg GUI Converter")
+        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
         self.setFixedSize(500, 309)
 
         # 布局
@@ -219,6 +220,8 @@ class FFmpegWidget(QWidget):
 
     def execute_command(self):
         if self.buttonGroup.checkedButton():
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+            self.show() 
             self.execute_button.setDisabled(True)
             self.execute_button.setText("Executing...")
             path = self.path_input.text()
