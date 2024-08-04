@@ -7,16 +7,16 @@
 
 ## 特点
 
-- 支持大部分FFmpeg功能
-- 可以处理整个文件目录
-- 支持包括MP4在内的六种常见格式
+- 能处理大部分简单的FFmpeg任务
+- 可以处理文件目录
 - 可添加额外参数
+- 进度条(简陋的)
 - 多余的动画
 - 传奇依托白话菜比代码
 
-## 安装与使用
+## 安装
 
-### 安装FFmpeg
+### 安装FFmpeg（非常重要）
 
 如果你还没有安装FFmpeg，可以通过以下两种方式进行安装：
 
@@ -25,72 +25,55 @@
   winget install "FFmpeg (Essentials Build)"
   ```
 
-- 或从 [FFmpeg官方网站](https://www.gyan.dev/ffmpeg/builds/#release-builds) 下载 `FFmpeg Essentials Build` 并解压到同目录。
-
 ### 方法一：下载预编译的可执行文件
 
 1. 访问 [Releases 页面](https://github.com/zDichX/FFmpeg-GUI-Converter/releases) 
 2. 下载最新版本的 `.exe` 程序
 3. 运行程序
-4. 拖拽文件到窗口或选择文件
-5. 选择目标格式
-6. 点击 **Execute** 按钮
-7. 等待转换完成（程序将在完成后自动退出）
 
 ### 方法二：Git Clone
 
 1. 不用教
 
+## 用法
+
+1. 拖拽文件到窗口或选择文件
+2. 填写参数（非必须） 
+3. 选择目标格式
+4. 点击 **Execute** 按钮
+5. 等待转换完成
+
+### 参数示例
+
+#### input
+```shell
+-ss 00:00:10 -t 00:01:00
+```
+#### output
+```shell
+-vf "scale=1280:720,crop=640:480,transpose=1" -af "atrim=start=5,volume=2" -c:v libx264 -crf 23
+```
+具体解释如下：
+- `-ss 00:00:10`：从视频的第10秒开始处理。
+- `-t 00:01:00`：持续处理1分钟。
+- `-i input.mp4`：指定输入文件 `input.mp4`。
+- `-vf "scale=1280:720,crop=640:480,transpose=1"`：应用视频过滤器（video filter）。
+  - `scale=1280:720`：将视频缩放到1280x720像素。
+  - `crop=640:480`：从缩放后的视频中裁剪出640x480像素的区域。
+  - `transpose=1`：将视频顺时针旋转90度。
+- `-af "atrim=start=5,volume=2"`：应用音频过滤器（audio filter）。
+  - `atrim=start=5`：从音频的第5秒开始截取。
+  - `volume=2`：将音量提高2倍。
+- `-c:v libx264`：指定视频编码器为 `libx264`。
+- `-crf 23`：指定恒定速率因子（CRF）为23，控制视频质量。
+
+更多请参阅：[FFmpeg官方文档](https://ffmpeg.org/ffmpeg.html)
+
 ## p.s.
 
-1. 单个文件会转换后保存至同目录，文件夹会保存至 `converted_files` 文件夹。
-2. 我不会写代码，孩子不懂事传着玩的
-3. 无论发生什么，请尽可能认为这是正常的
+1. 单个文件会转换后保存至同目录，格式为xxx__converted.xxx，文件夹会保存至 `converted_files` 目录
+2. 进度动画可以在同目录下新建一个txt文档并命名为 `no_animation_plz.txt` 来禁用（文档内容随意）
+3. 除非出问题，不然程序不会自动退出
+4. 我不会代码，孩子不懂事写着玩的
+5. 不管发生什么，请尽可能认为这是正常的
 
----
----
-
-# FFmpeg GUI Converter
-
-This is a GUI-based conversion tool built on FFmpeg, designed to handle basic format conversions.
-
-## Features
-
-- Supports most FFmpeg features
-- Can handle entire directories
-- Supports six common formats, including MP4
-- Allows the addition of extra parameters
-- Animations
-
-## Installation & Usage
-
-### Install FFmpeg
-
-If you don't have FFmpeg installed, you can install it using the following methods:
-
-- Install via `winget`:
-  ```shell
-  winget install "FFmpeg (Essentials Build)"
-  ```
-
-- Or download the `FFmpeg Essentials Build` from [FFmpeg Official Website](https://www.gyan.dev/ffmpeg/builds/#release-builds) and extract it to the same directory as this tool.
-
-### Method 1: Download Precompiled Executable
-
-1. Visit the [Releases page](https://github.com/zDichX/FFmpeg-GUI-Converter/releases)
-2. Download the latest version of the `.exe` program
-3. Run the program
-4. Drag and drop files into the window or select a file manually
-5. Choose the target format
-6. Click the **Execute** button
-7. Wait for the conversion to complete (It will automatically exit upon completion)
-
-### Method 2: Compile from Source
-
-1. `git clone`
-2. I bet you know what's the next
-
-## Additional Information
-
-1. Converted files will be saved in the same directory as the original for single files, and in the `converted_files` folder for directories.
-2. Please note that this is a simple, fun tool, I'm not a professional developer.
