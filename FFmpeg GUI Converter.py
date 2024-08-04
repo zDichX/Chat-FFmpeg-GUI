@@ -216,7 +216,7 @@ class FFmpegWidget(QWidget):
         self.mov_animation = QPropertyAnimation(self, b"pos")
         self.mov_animation.setDuration(600)
         self.mov_animation.setStartValue(self.pos())
-        self.mov_animation.setEndValue(QPoint(self.screen_center.x() - self.window_center.x(), self.screen_center.y() - self.window_center.y()))
+        self.mov_animation.setEndValue(QPoint(self.screen_center.x() - self.window_center.x(), self.screen_center.y() - self.window_center.y() - 200))
         self.mov_animation.setEasingCurve(QEasingCurve.OutCubic)
         self.mov_animation.finished.connect(self.processing_animation)
         self.mov_animation.start()
@@ -244,9 +244,10 @@ class FFmpegWidget(QWidget):
         else:
             self.timer.stop()
             return
-
-        x = int(self.screen_center.x() + radius * math.sin(self.t) - self.window_center.x())
-        y = int(self.screen_center.y() + radius * math.sin(self.t) * math.cos(self.t)- self.window_center.y())
+        
+        angle = self.t - math.pi / 2
+        x = int(self.screen_center.x() + radius * math.cos(angle) - self.window_center.x())
+        y = int(self.screen_center.y() + radius * math.sin(angle) - self.window_center.y())
         self.move(x, y)
 
     def delayed_animation_start(self):
