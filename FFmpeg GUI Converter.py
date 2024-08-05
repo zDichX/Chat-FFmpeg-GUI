@@ -1,5 +1,5 @@
-from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QDesktopWidget, QFileDialog
-from PyQt5.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog
+from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
 
 import re, os, sys, math, subprocess
 
@@ -29,7 +29,18 @@ class FFmpegWorker(QThread):
             return h * 3600 + m * 60 + s
         return None
     
+    # 检测并安装ffmpeg
+    def detect_ffmpeg(self):
+        try:
+            subprocess.run(['ffmpeg', '-version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        except:
+            try:
+                subprocess.run(['winget', 'install', 'FFmpeg (Essentials Build)'], check=True)
+            except:
+                sys.exit(1)
+
     def run(self):
+        self.detect_ffmpeg()
         try:
             total_duration = 0
             accumulated_elapsed_seconds = 0
@@ -61,9 +72,10 @@ class FFmpegWorker(QThread):
                         # 计算并发射综合进度
                         overall_progress = min(accumulated_elapsed_seconds / total_duration, 1.0)
                         self.progress_updated.emit(overall_progress)
+                        
                 process.wait()
         finally:
-            self.finished.emit()
+            pass
     def terminate_processes(self):
         for process in self.processes:
             if process.poll() is None:  # 检查进程是否仍在运行
@@ -83,8 +95,8 @@ class FFmpegWidget(QWidget):
 
     def initUI(self):
         self.setWindowTitle("FFmpeg GUI Converter")
-        self.setWindowFlags(self.windowFlags() | Qt.WindowStaysOnTopHint)
-        self.setFixedSize(500, 309)
+        self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
+        self.setFixedSize(324, 200)
 
         # 布局
         self.layout = QVBoxLayout()
@@ -147,7 +159,7 @@ class FFmpegWidget(QWidget):
         for format in formats:
             button = QPushButton(format)
             button.setCheckable(True)
-            button.setMinimumWidth(75)
+            button.setMinimumWidth(45)
             self.buttonGroup.addButton(button)
             self.button_layout.addWidget(button)
         self.buttonGroup.buttonClicked.connect(lambda: self.exclusive_detect("choosing"))
@@ -174,8 +186,8 @@ class FFmpegWidget(QWidget):
                     stop: 0 #e0c3fc, stop: 1 #8ec5fc
                 );
                 color: #000000; 
-                font-size: 20px;
-                border-radius: 20px;
+                font-size: 13px;
+                border-radius: 13px;
                 
             }
             QLabel{
@@ -184,15 +196,15 @@ class FFmpegWidget(QWidget):
             QLineEdit {
                 background-color: rgba(255, 255, 255, 0.4); /* 输入框背景 */
                 border: 2px solid #ffffff; /* 输入框边框颜色 */
-                padding-left: 15px; /* 内边距 */
+                padding-left: 10px; /* 内边距 */
                 padding-right: 10px;
-                padding-top: 5px;
-                padding-bottom: 5px;
+                padding-top: 3px;
+                padding-bottom: 3px;
             }
             QPushButton {
                 background-color: rgba(255, 255, 255, 0.4);/* 按钮背景颜色 */
                 border: none;
-                padding: 10px;
+                padding: 6px;
             }    
             QPushButton:hover {
                 background-color: rgba(150, 150, 150, 0.4); /* 鼠标悬停时的颜色 */
@@ -207,7 +219,7 @@ class FFmpegWidget(QWidget):
         self.pos_animation.setDuration(1000)
         self.pos_animation.setStartValue(self.pos())
         self.pos_animation.setEndValue(QPoint(self.pos().x(), self.pos().y() + 100))
-        self.pos_animation.setEasingCurve(QEasingCurve.OutBounce)
+        self.pos_animation.setEasingCurve(QEasingCurve.Type.OutBounce)
         self.pos_animation.start()
 
     def move_to_center(self):
@@ -216,8 +228,8 @@ class FFmpegWidget(QWidget):
         self.mov_animation = QPropertyAnimation(self, b"pos")
         self.mov_animation.setDuration(600)
         self.mov_animation.setStartValue(self.pos())
-        self.mov_animation.setEndValue(QPoint(self.screen_center.x() - self.window_center.x(), self.screen_center.y() - self.window_center.y() - 200))
-        self.mov_animation.setEasingCurve(QEasingCurve.OutCubic)
+        self.mov_animation.setEndValue(QPoint(self.screen_center.x() - self.window_center.x(), self.screen_center.y() - self.window_center.y() - 100))
+        self.mov_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
         self.mov_animation.finished.connect(self.processing_animation)
         self.mov_animation.start()
 
@@ -232,11 +244,11 @@ class FFmpegWidget(QWidget):
         self.step = 0
 
     def get_screen_center(self):
-        screen = QDesktopWidget().screenGeometry()
+        screen = QApplication.primaryScreen().geometry()
         return QPoint(screen.width() // 2, screen.height() // 2)
 
     def update_position(self):
-        radius = 200
+        radius = 100
         if self.step >= 0:
             self.t += self.step
             if self.t <= 10000:
@@ -267,7 +279,7 @@ class FFmpegWidget(QWidget):
 
     def open_file_dialog(self):
         options = QFileDialog.Options()
-        file_name, _ = QFileDialog.getOpenFileName(self, "", "", "all files (*);;vedio (*.mp4 *.mkv *.avi);;audio (*.mp3 *.wav *.flac)", options=options)
+        file_name, _ = QFileDialog.getOpenFileName(self, "", "", "all files (*);;video (*.mp4 *.mkv *.avi);;audio (*.mp3 *.wav *.flac)", options=options)
         if file_name:
             self.path_input.setText(file_name)
 
@@ -293,7 +305,7 @@ class FFmpegWidget(QWidget):
             # print("Please choose a format")
             self.execute_button.setText("Please choose a format")
             return
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowStaysOnTopHint)
+        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
         self.show()
         self.execute_button.setDisabled(True)
         self.execute_button.setText("Executing...")
@@ -327,7 +339,7 @@ class FFmpegWidget(QWidget):
     def run_command_in_thread(self, input_path, output_path, inp_params, out_params):
         self.worker = FFmpegWorker(input_path, output_path, inp_params, out_params)
         self.worker.progress_updated.connect(self.update_progress)  # 连接进度更新信号
-        self.worker.finished.connect(self.finished)
+        self.worker.finished.connect(self.conversion_finished)
         self.worker.start()
         if not os.path.isfile('no_animation_plz.txt'):
             self.move_to_center()
@@ -336,7 +348,7 @@ class FFmpegWidget(QWidget):
         self.execute_button.setText(f"{progress * 100:.2f}%")
         self.progress = progress
         
-    def finished(self):
+    def conversion_finished(self):
         self.execute_button.setDisabled(False)
         self.execute_button.setText("Finished")
 
@@ -350,4 +362,4 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     demo = FFmpegWidget()
     demo.show()
-    sys.exit(app.exec_())
+    sys.exit(app.exec())
