@@ -29,7 +29,7 @@ If you don't have FFmpeg installed, the program usually helps you download and i
 
 ### Method 1: Download Precompiled Executable
 
-1. Visit the [Releases page](https://github.com/zDichX/FFmpeg-GUI-Converter/releases)
+1. Visit the [Releases Page](../../releases)
 2. Download the latest `.exe` program
 3. Run the program
 

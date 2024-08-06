@@ -28,7 +28,7 @@
  - 我不会
 ### 方法一：下载预编译的可执行文件
 
-1. 访问 [Releases 页面](https://github.com/zDichX/FFmpeg-GUI-Converter/releases) 
+1. 访问 [Releases 页面](../../releases)
 2. 下载最新版本的 `.exe` 程序
 3. 运行程序
 
