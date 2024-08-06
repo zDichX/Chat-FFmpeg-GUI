@@ -355,7 +355,6 @@ class FFmpegWidget(QWidget):
     def closeEvent(self, event):
         if self.worker is not None:
             self.worker.terminate_processes()
-        event.accept()  # 确保关闭事件继续进行
         super().closeEvent(event)
 
 if __name__ == "__main__":

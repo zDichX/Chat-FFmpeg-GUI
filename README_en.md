@@ -74,6 +74,6 @@ For more details, see the [FFmpeg Documentation](https://ffmpeg.org/ffmpeg.html)
 
 1. Single files will be saved in the same directory with the format xxx_converted.xxx, and folders will be saved in the `converted_files` directory.
 2. To disable progress animations, create a text file named `no_animation_plz.txt` in the same directory (contents of the file don't matter).
-3. The program will not automatically exit unless something goes wrong. Normally, "Finished" will be displayed with the animation ending. If "Finished" is displayed immediately after execution and the window animation continues, it means FFmpeg encountered an error. You can close it at this point.
+3. The program will not automatically exit unless something goes wrong. Normally, If "Finished" is displayed immediately after execution and the window animation continues, it means finished easily, **OR FFmpeg encountered an error**. You can close it at this point.
 4. I don't know coding, this is just a project for fun.
 5. No matter what happens, try to assume it's normal.
