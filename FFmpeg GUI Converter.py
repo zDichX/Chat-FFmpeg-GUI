@@ -277,7 +277,8 @@ class FFmpegWidget(QWidget):
                 self.path_input.setText(path)
 
     def open_file_dialog(self):
-        options = QFileDialog.Options()
+        file_dialog = QFileDialog()
+        options = file_dialog.options()
         file_name, _ = QFileDialog.getOpenFileName(self, "", "", "all files (*);;video (*.mp4 *.mkv *.avi);;audio (*.mp3 *.wav *.flac)", options=options)
         if file_name:
             self.path_input.setText(file_name)
