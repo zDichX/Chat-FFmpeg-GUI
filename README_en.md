@@ -16,7 +16,7 @@ A not-so-practical FFmpeg GUI that can perform basic format conversions.
 
 ### Installing FFmpeg (Prerequisite)
 
-If you don't have FFmpeg installed, the program usually helps you download and install it automatically (requires a special environment, sometimes administrative privileges). If the installation fails, you can install it manually:
+If you don't have FFmpeg installed, the program usually helps you download and install it automatically (sometimes administrative privileges). If the installation fails, you can install it manually:
 
 #### Windows
 - Using `winget`:
