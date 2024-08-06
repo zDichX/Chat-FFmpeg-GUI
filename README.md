@@ -1,9 +1,9 @@
 # FFmpeg GUI Converter
-
 不太实用的ffmpeg gui，能实现基本的格式转换
 <br><br>
 ![image](https://github.com/user-attachments/assets/65b4883c-c227-4119-8872-695ea72b7bdb)
 
+- [English](README_en.md)
 
 ## 特点
 

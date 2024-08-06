@@ -180,7 +180,7 @@ class FFmpegWidget(QWidget):
     def apply_styles(self):
         self.setStyleSheet("""
             QWidget {
-                font-family: 'Segoe UI', sans-serif; /* 设置全局字体为 Roboto */
+                font-family: 'Segoe UI', sans-serif;
                 background: qlineargradient(
                     x1: 0, y1: 0, x2: 1, y2: 1,
                     stop: 0 #e0c3fc, stop: 1 #8ec5fc
@@ -188,29 +188,28 @@ class FFmpegWidget(QWidget):
                 color: #000000; 
                 font-size: 13px;
                 border-radius: 13px;
-                
             }
             QLabel{
                 background: none;
             }
             QLineEdit {
-                background-color: rgba(255, 255, 255, 0.4); /* 输入框背景 */
-                border: 2px solid #ffffff; /* 输入框边框颜色 */
-                padding-left: 10px; /* 内边距 */
+                background-color: rgba(255, 255, 255, 0.4);
+                border: 2px solid #ffffff;
+                padding-left: 10px;
                 padding-right: 10px;
                 padding-top: 3px;
                 padding-bottom: 3px;
             }
             QPushButton {
-                background-color: rgba(255, 255, 255, 0.4);/* 按钮背景颜色 */
+                background-color: rgba(255, 255, 255, 0.4);
                 border: none;
                 padding: 6px;
             }    
             QPushButton:hover {
-                background-color: rgba(150, 150, 150, 0.4); /* 鼠标悬停时的颜色 */
+                background-color: rgba(150, 150, 150, 0.4);
             }
             QPushButton:checked {
-                background-color: white;  /* 选中状态颜色 */
+                background-color: white;
             }
         """)
 
