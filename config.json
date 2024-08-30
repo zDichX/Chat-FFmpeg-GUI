@@ -1,0 +1,9 @@
+{
+    "animation": false,
+    "ai_config": {
+        "url": "https://api.openai.com",
+        "api_key": "sk-xxxxxx",
+        "model": "gpt-4o-mini",
+        "temperature": 0.7
+    }
+}
