@@ -1,26 +1,23 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
 
-import re, os, sys, math, subprocess
+import re, os, sys, math, json, subprocess
+from openai import OpenAI
 
 class FFmpegWorker(QThread):
     progress_updated = pyqtSignal(float)  # 定义进度更新信号
 
-    def __init__(self, input_path, output_path, inp_params, out_params):
+    def __init__(self, file_info, ai_commands):
         super().__init__()
-        if isinstance(input_path, list):
-            self.input_path = input_path
-            self.output_path = output_path
-        else:
-            self.input_path = [input_path]
-            self.output_path = [output_path]
-
-        self.inp_params = inp_params + " "
-        self.out_params = out_params + " "
         self.processes = []  # 存储子进程的列表
-
-    def get_duration(self, file_path):
-        command = ['ffmpeg', '-i', file_path]
+        self.input_path = file_info['input_path']
+        self.output_path = file_info['output_path']
+        self.ai_commands = ai_commands
+        # self.inp_params = inp_params + " "
+        # self.out_params = out_params + " "
+        
+    def get_duration(self, ffmpar, file_path):
+        command = [ffmpar, '-i', file_path]
         result = subprocess.run(command, stderr=subprocess.PIPE, text=True, errors='ignore')
         duration_pattern = re.compile(r'Duration: (\d+):(\d+):(\d+.\d+)')
         match = duration_pattern.search(result.stderr)
@@ -28,32 +25,47 @@ class FFmpegWorker(QThread):
             h, m, s = map(float, match.groups())
             return h * 3600 + m * 60 + s
         return None
-    
+
     # 检测并安装ffmpeg
     def detect_ffmpeg(self):
         try:
             subprocess.run(['ffmpeg', '-version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            return 'ffmpeg'
         except:
             try:
-                subprocess.run(['winget', 'install', 'FFmpeg (Essentials Build)'], check=True)
+                current_directory = os.getcwd()
+                ffmpeg_path = [file for file in os.listdir(current_directory) if file.startswith('ffmpeg')]
+                if ffmpeg_path[0]:
+                    return os.path.join(current_directory, ffmpeg_path[0], 'bin', 'ffmpeg.exe')
+                else:
+                    subprocess.run(['winget', 'install', 'FFmpeg (Essentials Build)'], check=True)
+                    subprocess.call([sys.executable] + sys.argv)
+                    sys.exit(0)
             except:
                 sys.exit(1)
 
     def run(self):
-        self.detect_ffmpeg()
+        self.ffmpeg_par = self.detect_ffmpeg()
         try:
             total_duration = 0
             accumulated_elapsed_seconds = 0
 
             # 计算所有文件的总时长
             for value in self.input_path:
-                duration = self.get_duration(value)
+                duration = self.get_duration(self.ffmpeg_par, value)
                 if duration is not None:
                     total_duration += duration
+                    
 
             # 遍历每个文件进行转换
             for index, value in enumerate(self.input_path):
-                command = f"ffmpeg -y {self.inp_params}-i \"{value}\" {self.out_params}\"{self.output_path[index]}\""
+                if self.ai_commands:
+                    command = self.ai_commands[index]
+                else:
+                    # command = f"{self.ffmpeg_par} -y {self.inp_params}-i \"{value}\" {self.out_params}\"{self.output_path[index]}\""
+                    command = f"{self.ffmpeg_par} -y -i \"{value}\" \"{self.output_path[index]}\""
+
+                print(f'正在执行：{command}')
                 process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors='ignore', creationflags=subprocess.CREATE_NO_WINDOW)
                 self.processes.append(process)
                 progress_pattern = re.compile(r'time=(\d+):(\d+):(\d+.\d+)')
@@ -72,10 +84,12 @@ class FFmpegWorker(QThread):
                         # 计算并发射综合进度
                         overall_progress = min(accumulated_elapsed_seconds / total_duration, 1.0)
                         self.progress_updated.emit(overall_progress)
-                        
                 process.wait()
+        except Exception as e:
+            print(f"Unexpected error: {e}")
+            sys.exit(1)
         finally:
-            pass
+            self.terminate_processes()
     def terminate_processes(self):
         for process in self.processes:
             if process.poll() is None:  # 检查进程是否仍在运行
@@ -94,7 +108,7 @@ class FFmpegWidget(QWidget):
         
 
     def initUI(self):
-        self.setWindowTitle("FFmpeg GUI Converter")
+        self.setWindowTitle("Chat FFmpeg GUI")
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(324, 200)
 
@@ -122,34 +136,18 @@ class FFmpegWidget(QWidget):
         # 添加到主布局
         self.layout.addLayout(self.path_layout)
 
-        # 文本2
-        self.format_label = QLabel("Parameters:")
-        self.layout.addWidget(self.format_label)
+        # 转换为
+        # self.output_layout = QHBoxLayout()
 
-        # self.command_line = QLineEdit()
-        # self.command_line.setPlaceholderText('(￣﹃￣)')
-        # self.command_line.setReadOnly(True)
-        # self.layout.addWidget(self.command_line)
+        # self.output_text = QLabel("Convert to: ")
+        # self.output_layout.addWidget(self.output_text)
 
-        # 参数
-        self.parameters_layout = QHBoxLayout()
-        self.inp_params_line = QLineEdit()
-        self.inp_params_line.setPlaceholderText('input')
-        self.parameters_layout.addWidget(self.inp_params_line)
+        # self.output_line = QLineEdit()
+        # self.output_line.setPlaceholderText("File name will be ignore")
+        # self.output_layout.addWidget(self.output_line)
+        # self.layout.addLayout(self.output_layout)
 
-        self.out_params_line = QLineEdit()
-        self.out_params_line.setPlaceholderText('output')
-        self.parameters_layout.addWidget(self.out_params_line)
 
-        # self.vfil_params_line = QLineEdit()
-        # self.vfil_params_line.setPlaceholderText('vfilter')
-        # self.parameters_layout.addWidget(self.vfil_params_line, 1, 0)
-
-        # self.afil_params_line = QLineEdit()
-        # self.afil_params_line.setPlaceholderText('afilter')
-        # self.parameters_layout.addWidget(self.afil_params_line, 1, 1)
-
-        self.layout.addLayout(self.parameters_layout)
 
         # 格式按钮组
         self.button_layout = QHBoxLayout()
@@ -164,11 +162,53 @@ class FFmpegWidget(QWidget):
             self.button_layout.addWidget(button)
         self.buttonGroup.buttonClicked.connect(lambda: self.exclusive_detect("choosing"))
         self.custom_format = QLineEdit()
+        self.custom_format.setPlaceholderText('or...')
         self.button_layout.addWidget(self.custom_format)
         self.custom_format.textChanged.connect(lambda: self.exclusive_detect("typing"))
         self.layout.addLayout(self.button_layout)
 
+        # self.command_line = QLineEdit()
+        # self.command_line.setPlaceholderText('(￣﹃￣)')
+        # self.command_line.setReadOnly(True)
+        # self.layout.addWidget(self.command_line)
+
+        # 参数
+        # self.parameters_layout = QHBoxLayout()
+
+        # self.inp_params_line = QLineEdit()
+        # self.inp_params_line.setPlaceholderText('Input Parameters')
+        # self.parameters_layout.addWidget(self.inp_params_line)
+
+        # self.out_params_line = QLineEdit()
+        # self.out_params_line.setPlaceholderText('Output Parameters')
+        # self.parameters_layout.addWidget(self.out_params_line)
+
+        # self.inp_anim = QPropertyAnimation(self.inp_params_line, b"windowOpacity")
+        # self.inp_anim.setDuration(500)
+        # self.inp_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
+        # self.inp_anim.setStartValue(1.0)
+        # self.inp_anim.setEndValue(0.0)        
+
+        # self.layout.addLayout(self.parameters_layout)
+        
         # 生成按钮
+        self.generate_layout = QHBoxLayout()
+        self.ai_params_line = QLineEdit()
+        self.ai_params_line.setPlaceholderText('(￣﹃￣)')
+        self.generate_layout.addWidget(self.ai_params_line)
+
+        self.generate_button = QPushButton('Generate')
+        self.generate_button.clicked.connect(lambda: self.AiGenerate(self.ai_params_line.text()))
+        self.generate_layout.addWidget(self.generate_button)
+
+        self.layout.addLayout(self.generate_layout)
+
+        # 生成的命令
+        self.command_line = QLabel('( •̀ ω •́ )✧Preview here...')
+        self.command_line.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        self.layout.addWidget(self.command_line)
+
+        # 执行按钮
         self.execute_button = QPushButton("Execute")
         self.execute_button.clicked.connect(self.execute_command)
         self.layout.addWidget(self.execute_button)
@@ -191,6 +231,7 @@ class FFmpegWidget(QWidget):
             }
             QLabel{
                 background: none;
+                padding-left: 4px;
             }
             QLineEdit {
                 background-color: rgba(255, 255, 255, 0.4);
@@ -294,55 +335,113 @@ class FFmpegWidget(QWidget):
             self.custom_format.setText("")
 
 
-    def execute_command(self):
+    def AiGenerate(self, text):
+        print('AI接收到的文本：' + text)
+        file_info = self.get_file_info()
+        if isinstance(file_info, dict):
+            with open('config.json', 'r') as file:
+                ai_config = json.load(file)["ai_config"]
+            
+            client = OpenAI(base_url=ai_config["url"], api_key=ai_config["api_key"])
 
+            completion = client.chat.completions.create(
+            model=ai_config["model"],
+            messages=[
+                {"role": "system", "content": f"Generate an ffmpeg command based on the following instructions. Assume the input file is input{file_info['input_format'][0]} and the output file is output{file_info['output_format']}. Please wrap the generated command in a markdown code block."},
+                {"role": "user", "content": text}
+            ],
+            temperature=ai_config["temperature"],
+            )
+            AiText = completion.choices[0].message.content
+
+            match1 = re.findall(r'```[\w]*\n(.*?)```', AiText, re.DOTALL)
+            match2 = re.search(r'ffmpeg .*', match1[0])
+            print(f'GPT的输出：{match2.group()}')
+            return self.undate_preview(match2.group())
+        else:
+            self.ai_params_line.setPlaceholderText(file_info)
+
+    def undate_preview(self, command):
+        self.command_line.setText(command)
+
+    def get_file_info(self):
         path = self.path_input.text()
+
         if self.buttonGroup.checkedButton():
             output_format = self.buttonGroup.checkedButton().text().lower()
         elif self.custom_format.text() and self.custom_format.text() != "":
-            output_format = self.custom_format.text()
+            output_format = self.custom_format.text().lower()
         else:
-            # print("Please choose a format")
-            self.execute_button.setText("Please choose a format")
-            return
-        self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
-        self.show()
-        self.execute_button.setDisabled(True)
-        self.execute_button.setText("Executing...")
-        self.progress = 0
+            # self.execute_button.setText("Please choose a format")
+            return 'unknown_format'
         if os.path.isfile(path):
-            
-            # command = self.command_line.text() or f"ffmpeg -i \"{path}\" \"{output_path}\""
-            self.run_command_in_thread(path, os.path.splitext(path)[0] + '_converted.' + output_format, self.inp_params_line.text(), self.out_params_line.text())
-            
+            file_info = {
+                'input_format': [os.path.splitext(path)[1]],
+                'output_format': '.' + output_format,
+                'input_path': [path],
+                'output_path': [os.path.splitext(path)[0] + '_converted.' + output_format]
+            }
         elif os.path.isdir(path):
-            output_dir = os.path.join(path, "converted_files")
-            os.makedirs(output_dir, exist_ok=True)
-            # commands = []
+            input_format = []
             input_path = []
             output_path = []
+            output_dir = os.path.join(path, "converted_files")
+            os.makedirs(output_dir, exist_ok=True)
             for file_name in os.listdir(path):
                 file_path = os.path.join(path, file_name)
                 if os.path.isfile(file_path):
+                    input_format.append(os.path.splitext(file_name)[1].lower())
                     input_path.append(file_path)
                     output_path.append(os.path.join(output_dir, os.path.splitext(file_name)[0] + '.' + output_format))
-                    # command = f"ffmpeg -i \"{file_path}\" {self.command_line.text()} \"{output_path}\""
-                    # commands.append(command)
-            # combined_command = ' && '.join(commands)
-            self.run_command_in_thread(input_path, output_path, self.inp_params_line.text(), self.out_params_line.text())
+            file_info = {
+                'input_format': input_format,
+                'output_format': '.' + output_format,
+                'input_path': input_path,
+                'output_path': output_path
+            }
         else:
-            # print("Invalid input path.")
-            self.execute_button.setDisabled(False)
-            self.execute_button.setText("Invalid input path")
-            return
+            # self.execute_button.setDisabled(False)
+            # self.execute_button.setText("Invalid input path")
+            return 'invalid_input_path'
+        return file_info
+        
+    def execute_command(self):
+        
+        file_info = self.get_file_info()
+        if isinstance(file_info, dict):
+            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
+            self.show()
+            self.execute_button.setDisabled(True)
+            self.execute_button.setText("Executing...")
+            self.progress = 0
 
-    def run_command_in_thread(self, input_path, output_path, inp_params, out_params):
-        self.worker = FFmpegWorker(input_path, output_path, inp_params, out_params)
+            if self.command_line.text().startswith('ffmpeg '):
+                commands = []
+                ai_cmd = self.command_line.text()
+                for index, value in enumerate(file_info['input_path']):
+                    overflow = ai_cmd.replace('ffmpeg ', 'ffmpeg -y ')
+                    rpInput = overflow.replace(f'input{file_info['input_format'][index]}', f'"{value}"')
+                    rpOutput = rpInput.replace(f'output{file_info['output_format']}', f'"{file_info['output_path'][index]}"')
+                    commands.append(rpOutput)
+            else:
+                commands = None
+
+            print(f'即将发送 - 文件属性：{file_info}, 命令：{commands}')
+            # self.run_command_in_thread(file_info['input_path'], file_info['output_path'], self.inp_params_line.text(), self.out_params_line.text())
+            self.run_command_in_thread(file_info, commands)
+            
+        else:
+            self.command_line.setText(f'━━Σ(ﾟдﾟ;). {file_info}...')
+        
+    def run_command_in_thread(self, file_info, commands):
+        # print(f"input_path:{input_path}, output_path:{output_path}, inp_params:{inp_params}, out_params:{out_params}")
+        self.worker = FFmpegWorker(file_info, commands)
         self.worker.progress_updated.connect(self.update_progress)  # 连接进度更新信号
         self.worker.finished.connect(self.conversion_finished)
         self.worker.start()
-        if not os.path.isfile('no_animation_plz.txt'):
-            self.move_to_center()
+        with open('config.json', 'r') as file:
+            if json.load(file)["animation"]:
+                self.move_to_center()
 
     def update_progress(self, progress):
         self.execute_button.setText(f"{progress * 100:.2f}%")
