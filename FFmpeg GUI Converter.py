@@ -1,8 +1,7 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
 
-import re, os, sys, math, json, subprocess
-from openai import OpenAI
+import re, os, sys, math, json, requests, subprocess
 
 class FFmpegWorker(QThread):
     progress_updated = pyqtSignal(float)  # 定义进度更新信号
@@ -341,18 +340,27 @@ class FFmpegWidget(QWidget):
         if isinstance(file_info, dict):
             with open('config.json', 'r') as file:
                 ai_config = json.load(file)["ai_config"]
-            
-            client = OpenAI(base_url=ai_config["url"], api_key=ai_config["api_key"])
 
-            completion = client.chat.completions.create(
-            model=ai_config["model"],
-            messages=[
+            url = ai_config["url"] + "/v1/chat/completions"
+            headers = {
+                "Authorization": f"Bearer {ai_config['api_key']}",
+                "Content-Type": "application/json"
+            }
+
+            data = {
+            'model': ai_config["model"],
+            'messages': [
                 {"role": "system", "content": f"Generate an ffmpeg command based on the following instructions. Assume the input file is input{file_info['input_format'][0]} and the output file is output{file_info['output_format']}. Please wrap the generated command in a markdown code block."},
                 {"role": "user", "content": text}
             ],
-            temperature=ai_config["temperature"],
-            )
-            AiText = completion.choices[0].message.content
+            'temperature': ai_config["temperature"]
+            }
+
+            response = requests.post(url, headers=headers, json=data)
+            response_json = response.json()
+
+            AiText = response_json['choices'][0]['message']['content']
+
 
             match1 = re.findall(r'```[\w]*\n(.*?)```', AiText, re.DOTALL)
             match2 = re.search(r'ffmpeg .*', match1[0])
@@ -406,7 +414,6 @@ class FFmpegWidget(QWidget):
         return file_info
         
     def execute_command(self):
-        
         file_info = self.get_file_info()
         if isinstance(file_info, dict):
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
@@ -445,11 +452,20 @@ class FFmpegWidget(QWidget):
 
     def update_progress(self, progress):
         self.execute_button.setText(f"{progress * 100:.2f}%")
+        num_blocks = int(progress * 30)
+        progress_bar = '█' * num_blocks + '░' * (30 - num_blocks)
+        self.command_line.setText(progress_bar)
+
         self.progress = progress
-        
+    
     def conversion_finished(self):
         self.execute_button.setDisabled(False)
-        self.execute_button.setText("Finished")
+        self.execute_button.setText("Execute")
+        file_info = self.get_file_info()
+        if file_info['input_path'][0] and os.path.isfile(file_info['input_path'][0]):
+            self.command_line.setText("Finished!")
+        else:
+            self.command_line.setText("Error...")
 
     def closeEvent(self, event):
         if self.worker is not None:
