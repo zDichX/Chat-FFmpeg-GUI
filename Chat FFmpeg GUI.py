@@ -1,5 +1,6 @@
 from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
+from PyQt6.QtGui import QIcon
 
 import re, os, sys, math, json, requests, subprocess
 
@@ -104,10 +105,11 @@ class FFmpegWidget(QWidget):
         self.initUI()
         self.apply_styles()
         self.delayed_animation_start()
-        
 
     def initUI(self):
         self.setWindowTitle("Chat FFmpeg GUI")
+        icon_path = self.get_icon()
+        self.setWindowIcon(QIcon(icon_path))
         self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowStaysOnTopHint)
         self.setFixedSize(324, 200)
 
@@ -253,6 +255,17 @@ class FFmpegWidget(QWidget):
             }
         """)
 
+    # 获取图标
+    def get_icon(self):
+        if hasattr(sys, '_MEIPASS'):
+            # 运行时目录
+            base_path = sys._MEIPASS
+        else:
+            # 开发时目录
+            base_path = os.path.abspath(".")
+        icon_path = os.path.join(base_path, "icon.ico")
+        return icon_path
+    
     def start_animation(self):
         self.pos_animation = QPropertyAnimation(self, b"pos")
         self.pos_animation.setDuration(1000)
