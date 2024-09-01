@@ -348,39 +348,48 @@ class FFmpegWidget(QWidget):
 
 
     def AiGenerate(self, text):
-        print('AI接收到的文本：' + text)
-        file_info = self.get_file_info()
-        if isinstance(file_info, dict):
-            with open('config.json', 'r') as file:
-                ai_config = json.load(file)["ai_config"]
+        try:
+            print('AI接收到的文本：' + text)
+            file_info = self.get_file_info()
+            if isinstance(file_info, dict):
+                with open('config.json', 'r') as file:
+                    ai_config = json.load(file)["ai_config"]
 
-            url = ai_config["url"] + "/v1/chat/completions"
-            headers = {
-                "Authorization": f"Bearer {ai_config['api_key']}",
-                "Content-Type": "application/json"
-            }
+                url = ai_config["url"] + "/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {ai_config['api_key']}",
+                    "Content-Type": "application/json"
+                }
 
-            data = {
-            'model': ai_config["model"],
-            'messages': [
-                {"role": "system", "content": f"Generate an ffmpeg command based on the following instructions. Assume the input file is input{file_info['input_format'][0]} and the output file is output{file_info['output_format']}. Please wrap the generated command in a markdown code block."},
-                {"role": "user", "content": text}
-            ],
-            'temperature': ai_config["temperature"]
-            }
+                data = {
+                'model': ai_config["model"],
+                'messages': [
+                    {"role": "system", "content": f"Generate an ffmpeg command based on the following instructions. Assume the input file is input{file_info['input_format'][0]} and the output file is output{file_info['output_format']}. Do not add any parameters that were not requested. Please wrap the generated command in a markdown code block."},
+                    {"role": "user", "content": text}
+                ],
+                'temperature': ai_config["temperature"]
+                }
 
-            response = requests.post(url, headers=headers, json=data)
-            response_json = response.json()
+                response = requests.post(url, headers=headers, json=data)
+                response_json = response.json()
 
-            AiText = response_json['choices'][0]['message']['content']
+                AiText = response_json['choices'][0]['message']['content']
 
 
-            match1 = re.findall(r'```[\w]*\n(.*?)```', AiText, re.DOTALL)
-            match2 = re.search(r'ffmpeg .*', match1[0])
-            print(f'GPT的输出：{match2.group()}')
-            return self.undate_preview(match2.group())
-        else:
-            self.ai_params_line.setPlaceholderText(file_info)
+                match1 = re.findall(r'```[\w]*\n(.*?)```', AiText, re.DOTALL)
+                match2 = re.search(r'ffmpeg .*', match1[0])
+                print(f'GPT的输出：{match2.group()}')
+                return self.undate_preview(match2.group())
+            else:
+                self.ai_params_line.setPlaceholderText(file_info)
+        except Exception as e:
+            print(f"error: {str(e)}")
+            if str(e) == "'choices'" or 'Connection aborted' in str(e):
+                error_info = '`config.json` seems to be incorrect.'
+            else:
+                error_info = f"error: {str(e)}"
+            self.command_line.setText(error_info)
+            return
 
     def undate_preview(self, command):
         self.command_line.setText(command)
