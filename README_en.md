@@ -1,7 +1,8 @@
 # Chat FFmpeg GUI
 A less practical FFmpeg GUI that can perform basic format conversions and generate commands based on natural language descriptions.
 <br><br>
-![image](https://github.com/user-attachments/assets/65b4883c-c227-4119-8872-695ea72b7bdb)
+
+![screenshot](https://github.com/user-attachments/assets/8b783e5e-571e-4a88-9a0e-95f2a2d3f21c)
 
 ## Features
 
