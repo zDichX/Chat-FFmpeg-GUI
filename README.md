@@ -1,7 +1,8 @@
 # Chat FFmpeg GUI
 不太实用的FFmpeg GUI，能实现基本的格式转换，并能根据自然语言描述来生成命令。
 <br><br>
-![image](https://github.com/user-attachments/assets/65b4883c-c227-4119-8872-695ea72b7bdb)
+
+![screenshot](https://github.com/user-attachments/assets/8b783e5e-571e-4a88-9a0e-95f2a2d3f21c)
 
 - [English](README_en.md)
 
