@@ -1,4 +1,4 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog
+from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog, QGraphicsOpacityEffect
 from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
 from PyQt6.QtGui import QIcon
 
@@ -195,7 +195,7 @@ class FFmpegWidget(QWidget):
         # 生成按钮
         self.generate_layout = QHBoxLayout()
         self.ai_params_line = QLineEdit()
-        self.ai_params_line.setPlaceholderText('(￣﹃￣)')
+        self.ai_params_line.setPlaceholderText('How can I assist you today?')
         self.generate_layout.addWidget(self.ai_params_line)
 
         self.generate_button = QPushButton('Generate')
@@ -212,6 +212,8 @@ class FFmpegWidget(QWidget):
         # 执行按钮
         self.execute_button = QPushButton("Execute")
         self.execute_button.clicked.connect(self.execute_command)
+        
+        # self.execute_button.clicked.connect(self.click_animation)
         self.layout.addWidget(self.execute_button)
 
         # 应用窗口
@@ -243,7 +245,7 @@ class FFmpegWidget(QWidget):
                 padding-bottom: 3px;
             }
             QPushButton {
-                background-color: rgba(255, 255, 255, 0.4);
+                background-color: rgba(255, 255, 255, 0.3);
                 border: none;
                 padding: 6px;
             }    
@@ -252,6 +254,7 @@ class FFmpegWidget(QWidget):
             }
             QPushButton:checked {
                 background-color: white;
+                font-weight: bold;
             }
         """)
 
@@ -273,6 +276,21 @@ class FFmpegWidget(QWidget):
         self.pos_animation.setEndValue(QPoint(self.pos().x(), self.pos().y() + 100))
         self.pos_animation.setEasingCurve(QEasingCurve.Type.OutBounce)
         self.pos_animation.start()
+
+    def click_animation(self, button):
+        # 创建 QGraphicsOpacityEffect 对象并设置到按钮上
+        opacity_effect = QGraphicsOpacityEffect(button)
+        button.setGraphicsEffect(opacity_effect)
+
+        # 创建 QPropertyAnimation 对象，用于动画效果
+        self.clk_animation = QPropertyAnimation(opacity_effect, b"opacity")
+        self.clk_animation.setDuration(200)
+        self.clk_animation.setStartValue(1)
+        self.clk_animation.setEndValue(0.7)
+        self.clk_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
+
+        # 开始动画
+        self.clk_animation.start()
 
     def move_to_center(self):
         self.screen_center = self.get_screen_center()
@@ -337,6 +355,17 @@ class FFmpegWidget(QWidget):
             self.path_input.setText(file_name)
 
     def exclusive_detect(self, state):
+        clicked_button = self.buttonGroup.checkedButton()
+        if clicked_button:
+            # 恢复所有按钮的透明度
+            for button in self.buttonGroup.buttons():
+                opacity_effect = QGraphicsOpacityEffect(button)
+                button.setGraphicsEffect(opacity_effect)
+                opacity_effect.setOpacity(1.0)
+
+            # 为点击的按钮应用动画
+            self.click_animation(clicked_button)
+
         if state == "typing": 
             selected_button = self.buttonGroup.checkedButton()
             if selected_button:
@@ -381,7 +410,7 @@ class FFmpegWidget(QWidget):
                 print(f'GPT的输出：{match2.group()}')
                 return self.undate_preview(match2.group())
             else:
-                self.ai_params_line.setPlaceholderText(file_info)
+                self.command_line.setText(file_info)
         except Exception as e:
             print(f"error: {str(e)}")
             if str(e) == "'choices'" or 'Connection aborted' in str(e):
@@ -403,7 +432,7 @@ class FFmpegWidget(QWidget):
             output_format = self.custom_format.text().lower()
         else:
             # self.execute_button.setText("Please choose a format")
-            return 'unknown_format'
+            return 'Unknown format'
         if os.path.isfile(path):
             file_info = {
                 'input_format': [os.path.splitext(path)[1]],
@@ -432,7 +461,7 @@ class FFmpegWidget(QWidget):
         else:
             # self.execute_button.setDisabled(False)
             # self.execute_button.setText("Invalid input path")
-            return 'invalid_input_path'
+            return 'Invalid input path'
         return file_info
         
     def execute_command(self):
