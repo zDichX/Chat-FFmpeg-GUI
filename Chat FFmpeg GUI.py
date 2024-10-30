@@ -1,100 +1,10 @@
-from PyQt6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog, QGraphicsOpacityEffect
-from PyQt6.QtCore import QPropertyAnimation, QEasingCurve, QTimer, QPoint, QThread, Qt, pyqtSignal
-from PyQt6.QtGui import QIcon
+from PySide6.QtWidgets import QApplication, QWidget, QVBoxLayout, QLineEdit, QPushButton, QLabel, QHBoxLayout, QButtonGroup, QFileDialog, QGraphicsOpacityEffect
+from PySide6.QtCore import Qt
+from PySide6.QtGui import QIcon
 
-import re, os, sys, math, json, requests, subprocess
-
-class FFmpegWorker(QThread):
-    progress_updated = pyqtSignal(float)  # 定义进度更新信号
-
-    def __init__(self, file_info, ai_commands):
-        super().__init__()
-        self.processes = []  # 存储子进程的列表
-        self.input_path = file_info['input_path']
-        self.output_path = file_info['output_path']
-        self.ai_commands = ai_commands
-        # self.inp_params = inp_params + " "
-        # self.out_params = out_params + " "
-        
-    def get_duration(self, ffmpar, file_path):
-        command = [ffmpar, '-i', file_path]
-        result = subprocess.run(command, stderr=subprocess.PIPE, text=True, errors='ignore')
-        duration_pattern = re.compile(r'Duration: (\d+):(\d+):(\d+.\d+)')
-        match = duration_pattern.search(result.stderr)
-        if match:
-            h, m, s = map(float, match.groups())
-            return h * 3600 + m * 60 + s
-        return None
-
-    # 检测并安装ffmpeg
-    def detect_ffmpeg(self):
-        try:
-            subprocess.run(['ffmpeg', '-version'], check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            return 'ffmpeg'
-        except:
-            try:
-                current_directory = os.getcwd()
-                ffmpeg_path = [file for file in os.listdir(current_directory) if file.startswith('ffmpeg')]
-                if ffmpeg_path[0]:
-                    return os.path.join(current_directory, ffmpeg_path[0], 'bin', 'ffmpeg.exe')
-                else:
-                    subprocess.run(['winget', 'install', 'FFmpeg (Essentials Build)'], check=True)
-                    subprocess.call([sys.executable] + sys.argv)
-                    sys.exit(0)
-            except:
-                sys.exit(1)
-
-    def run(self):
-        self.ffmpeg_par = self.detect_ffmpeg()
-        try:
-            total_duration = 0
-            accumulated_elapsed_seconds = 0
-
-            # 计算所有文件的总时长
-            for value in self.input_path:
-                duration = self.get_duration(self.ffmpeg_par, value)
-                if duration is not None:
-                    total_duration += duration
-                    
-
-            # 遍历每个文件进行转换
-            for index, value in enumerate(self.input_path):
-                if self.ai_commands:
-                    command = self.ai_commands[index]
-                else:
-                    # command = f"{self.ffmpeg_par} -y {self.inp_params}-i \"{value}\" {self.out_params}\"{self.output_path[index]}\""
-                    command = f"{self.ffmpeg_par} -y -i \"{value}\" \"{self.output_path[index]}\""
-
-                print(f'正在执行：{command}')
-                process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, errors='ignore', creationflags=subprocess.CREATE_NO_WINDOW)
-                self.processes.append(process)
-                progress_pattern = re.compile(r'time=(\d+):(\d+):(\d+.\d+)')
-                last_elapsed_seconds = 0  # 记录当前文件上一次已处理的秒数
-                for line in process.stderr:
-                    line = line.strip()
-                    match = progress_pattern.search(line)
-                    if match:
-                        h, m, s = map(float, match.groups())
-                        elapsed_seconds = h * 3600 + m * 60 + s
-                        
-                        # 累加当前文件的进度差值
-                        accumulated_elapsed_seconds += max(0, elapsed_seconds - last_elapsed_seconds)
-                        last_elapsed_seconds = elapsed_seconds
-                        
-                        # 计算并发射综合进度
-                        overall_progress = min(accumulated_elapsed_seconds / total_duration, 1.0)
-                        self.progress_updated.emit(overall_progress)
-                process.wait()
-        except Exception as e:
-            print(f"Unexpected error: {e}")
-            sys.exit(1)
-        finally:
-            self.terminate_processes()
-    def terminate_processes(self):
-        for process in self.processes:
-            if process.poll() is None:  # 检查进程是否仍在运行
-                process.terminate()
-                process.wait()
+from components.FFmpegWorker import FFmpegWorker
+from components.AnimationManager import AnimationManager
+import re, os, sys, json, requests
 
 
 class FFmpegWidget(QWidget):
@@ -102,9 +12,10 @@ class FFmpegWidget(QWidget):
         super().__init__()
         self.setAcceptDrops(True)
         self.worker = None  # 初始化 worker 变量
+        self.anim = AnimationManager(self)
         self.initUI()
         self.apply_styles()
-        self.delayed_animation_start()
+        self.anim.delayed_animation_start()
 
     def initUI(self):
         self.setWindowTitle("Chat FFmpeg GUI")
@@ -137,19 +48,6 @@ class FFmpegWidget(QWidget):
         # 添加到主布局
         self.layout.addLayout(self.path_layout)
 
-        # 转换为
-        # self.output_layout = QHBoxLayout()
-
-        # self.output_text = QLabel("Convert to: ")
-        # self.output_layout.addWidget(self.output_text)
-
-        # self.output_line = QLineEdit()
-        # self.output_line.setPlaceholderText("File name will be ignore")
-        # self.output_layout.addWidget(self.output_line)
-        # self.layout.addLayout(self.output_layout)
-
-
-
         # 格式按钮组
         self.button_layout = QHBoxLayout()
         self.button_layout.setSpacing(5)
@@ -168,30 +66,6 @@ class FFmpegWidget(QWidget):
         self.custom_format.textChanged.connect(lambda: self.exclusive_detect("typing"))
         self.layout.addLayout(self.button_layout)
 
-        # self.command_line = QLineEdit()
-        # self.command_line.setPlaceholderText('(￣﹃￣)')
-        # self.command_line.setReadOnly(True)
-        # self.layout.addWidget(self.command_line)
-
-        # 参数
-        # self.parameters_layout = QHBoxLayout()
-
-        # self.inp_params_line = QLineEdit()
-        # self.inp_params_line.setPlaceholderText('Input Parameters')
-        # self.parameters_layout.addWidget(self.inp_params_line)
-
-        # self.out_params_line = QLineEdit()
-        # self.out_params_line.setPlaceholderText('Output Parameters')
-        # self.parameters_layout.addWidget(self.out_params_line)
-
-        # self.inp_anim = QPropertyAnimation(self.inp_params_line, b"windowOpacity")
-        # self.inp_anim.setDuration(500)
-        # self.inp_anim.setEasingCurve(QEasingCurve.Type.InOutCubic)
-        # self.inp_anim.setStartValue(1.0)
-        # self.inp_anim.setEndValue(0.0)        
-
-        # self.layout.addLayout(self.parameters_layout)
-        
         # 生成按钮
         self.generate_layout = QHBoxLayout()
         self.ai_params_line = QLineEdit()
@@ -199,7 +73,7 @@ class FFmpegWidget(QWidget):
         self.generate_layout.addWidget(self.ai_params_line)
 
         self.generate_button = QPushButton('Generate')
-        self.generate_button.clicked.connect(lambda: self.AiGenerate(self.ai_params_line.text()))
+        self.generate_button.clicked.connect(lambda: self.handle_generation(self.ai_params_line.text()))
         self.generate_layout.addWidget(self.generate_button)
 
         self.layout.addLayout(self.generate_layout)
@@ -221,42 +95,8 @@ class FFmpegWidget(QWidget):
 
     # QSS样式
     def apply_styles(self):
-        self.setStyleSheet("""
-            QWidget {
-                font-family: 'Segoe UI', sans-serif;
-                background: qlineargradient(
-                    x1: 0, y1: 0, x2: 1, y2: 1,
-                    stop: 0 #e0c3fc, stop: 1 #8ec5fc
-                );
-                color: #000000; 
-                font-size: 13px;
-                border-radius: 13px;
-            }
-            QLabel{
-                background: none;
-                padding-left: 4px;
-            }
-            QLineEdit {
-                background-color: rgba(255, 255, 255, 0.4);
-                border: 2px solid #ffffff;
-                padding-left: 10px;
-                padding-right: 10px;
-                padding-top: 3px;
-                padding-bottom: 3px;
-            }
-            QPushButton {
-                background-color: rgba(255, 255, 255, 0.3);
-                border: none;
-                padding: 6px;
-            }    
-            QPushButton:hover {
-                background-color: rgba(150, 150, 150, 0.4);
-            }
-            QPushButton:checked {
-                background-color: white;
-                font-weight: bold;
-            }
-        """)
+        qss_content = open(os.path.join(os.getcwd(), 'style.qss')).read()
+        self.setStyleSheet(qss_content)
 
     # 获取图标
     def get_icon(self):
@@ -269,73 +109,6 @@ class FFmpegWidget(QWidget):
         icon_path = os.path.join(base_path, "icon.ico")
         return icon_path
     
-    def start_animation(self):
-        self.pos_animation = QPropertyAnimation(self, b"pos")
-        self.pos_animation.setDuration(1000)
-        self.pos_animation.setStartValue(self.pos())
-        self.pos_animation.setEndValue(QPoint(self.pos().x(), self.pos().y() + 100))
-        self.pos_animation.setEasingCurve(QEasingCurve.Type.OutBounce)
-        self.pos_animation.start()
-
-    def click_animation(self, button):
-        # 创建 QGraphicsOpacityEffect 对象并设置到按钮上
-        opacity_effect = QGraphicsOpacityEffect(button)
-        button.setGraphicsEffect(opacity_effect)
-
-        # 创建 QPropertyAnimation 对象，用于动画效果
-        self.clk_animation = QPropertyAnimation(opacity_effect, b"opacity")
-        self.clk_animation.setDuration(200)
-        self.clk_animation.setStartValue(1)
-        self.clk_animation.setEndValue(0.7)
-        self.clk_animation.setEasingCurve(QEasingCurve.Type.InOutQuad)
-
-        # 开始动画
-        self.clk_animation.start()
-
-    def move_to_center(self):
-        self.screen_center = self.get_screen_center()
-        self.window_center = QPoint(self.width() // 2, self.height() // 2)
-        self.mov_animation = QPropertyAnimation(self, b"pos")
-        self.mov_animation.setDuration(600)
-        self.mov_animation.setStartValue(self.pos())
-        self.mov_animation.setEndValue(QPoint(self.screen_center.x() - self.window_center.x(), self.screen_center.y() - self.window_center.y() - 100))
-        self.mov_animation.setEasingCurve(QEasingCurve.Type.OutCubic)
-        self.mov_animation.finished.connect(self.processing_animation)
-        self.mov_animation.start()
-
-    def processing_animation(self):
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.update_position)
-        self.timer.start(16)  # 60 FPS
-
-        self.screen_center = self.get_screen_center()
-        self.window_center = QPoint(self.width() // 2, self.height() // 2)
-        self.t = 0
-        self.step = 0
-
-    def get_screen_center(self):
-        screen = QApplication.primaryScreen().geometry()
-        return QPoint(screen.width() // 2, screen.height() // 2)
-
-    def update_position(self):
-        radius = 100
-        if self.step >= 0:
-            self.t += self.step
-            if self.t <= 10000:
-                self.step += (0.5 - self.progress) / 300
-        else:
-            self.timer.stop()
-            return
-        
-        angle = self.t - math.pi / 2
-        x = int(self.screen_center.x() + radius * math.cos(angle) - self.window_center.x())
-        y = int(self.screen_center.y() + radius * math.sin(angle) - self.window_center.y())
-        self.move(x, y)
-
-    def delayed_animation_start(self):
-        delay = 0
-        QTimer.singleShot(delay, self.start_animation)
-
     def dragEnterEvent(self, event):
         if event.mimeData().hasUrls():
             event.acceptProposedAction()
@@ -364,7 +137,7 @@ class FFmpegWidget(QWidget):
                 opacity_effect.setOpacity(1.0)
 
             # 为点击的按钮应用动画
-            self.click_animation(clicked_button)
+            self.anim.click_animation(clicked_button)
 
         if state == "typing": 
             selected_button = self.buttonGroup.checkedButton()
@@ -376,7 +149,7 @@ class FFmpegWidget(QWidget):
             self.custom_format.setText("")
 
 
-    def AiGenerate(self, text):
+    def handle_generation(self, text):
         try:
             print('AI接收到的文本：' + text)
             file_info = self.get_file_info()
@@ -487,7 +260,7 @@ class FFmpegWidget(QWidget):
             print(f'即将发送 - 文件属性：{file_info}, 命令：{commands}')
             # self.run_command_in_thread(file_info['input_path'], file_info['output_path'], self.inp_params_line.text(), self.out_params_line.text())
             self.run_command_in_thread(file_info, commands)
-            
+
         else:
             self.command_line.setText(f'━━Σ(ﾟдﾟ;). {file_info}...')
         
@@ -497,9 +270,9 @@ class FFmpegWidget(QWidget):
         self.worker.progress_updated.connect(self.update_progress)  # 连接进度更新信号
         self.worker.finished.connect(self.conversion_finished)
         self.worker.start()
-        with open('config.json', 'r') as file:
-            if json.load(file)["animation"]:
-                self.move_to_center()
+        # with open('config.json', 'r') as file:
+        #     if json.load(file)["animation"]:
+        #         self.anim.move_to_center()
 
     def update_progress(self, progress):
         self.execute_button.setText(f"{progress * 100:.2f}%")
@@ -520,8 +293,10 @@ class FFmpegWidget(QWidget):
 
     def closeEvent(self, event):
         if self.worker is not None:
-            self.worker.terminate_processes()
-        super().closeEvent(event)
+            self.worker.terminate_processes()  # 确保关闭 FFmpeg 进程
+            self.worker.quit()  # 停止工作线程
+            self.worker.wait()  # 等待线程结束
+        event.accept()  # 接受关闭事件
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)

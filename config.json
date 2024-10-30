@@ -1,5 +1,4 @@
 {
-    "animation": false,
     "ai_config": {
         "url": "https://api.openai.com",
         "api_key": "sk-xxxxxx",

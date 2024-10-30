@@ -6,11 +6,11 @@ A less practical FFmpeg GUI that can perform basic format conversions and genera
 
 ## Features
 
-- Handles most simple FFmpeg tasks
-- Can process directories
-- Autofill parameters
-- Progress bar (rudimentary)
-- Extra animations
+- [x] Handles most simple FFmpeg tasks
+- [x] Can process directories
+- [x] Autofill parameters
+- [x] Progress bar (rudimentary)
+- [x] Extra animations
 
 ## Installation
 
@@ -63,7 +63,6 @@ If you haven’t installed FFmpeg yet, the program will usually download and ins
 ## P.S.
 
 1. Single files will be saved in the same directory with the format `xxx_converted.xxx`, and folders will be saved in the `converted_files` directory.
-2. In the current version, window animations are disabled by default. To re-enable them, set the `animation` value to `true` in `config.json`.
-3. The program will not automatically exit unless something goes wrong. Normally, If `Finished` is displayed immediately after execution and the window animation continues, it means finished easily, **OR FFmpeg encountered an error**. You can close it at this point.
-4. I don't know coding, this is just a project for fun.
-5. No matter what happens, try to assume it's normal.
+2. The program will not automatically exit unless something goes wrong. Normally, If `Finished` is displayed immediately after execution and the window animation continues, it means finished easily, **OR FFmpeg encountered an error**. You can close it at this point.
+3. I don't know coding, this is just a project for fun.
+4. No matter what happens, try to assume it's normal.
