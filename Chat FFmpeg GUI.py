@@ -240,7 +240,7 @@ class FFmpegWidget(QWidget):
     def execute_command(self):
         file_info = self.get_file_info()
         if isinstance(file_info, dict):
-            self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowStaysOnTopHint)
+            self.setWindowFlags(self.windowFlags() & Qt.WindowType.WindowStaysOnBottomHint)
             self.show()
             self.execute_button.setDisabled(True)
             self.execute_button.setText("Executing...")
