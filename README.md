@@ -49,12 +49,13 @@
 2. 选择目标格式
 3. （可选）生成参数：
    - 在`config.json`中填入你的 `url` 和 `api_key` ，你可以从 [OpenAI官网](https://platform.openai.com/api-keys) 获取，如果有困难，也可以使用中转服务，例如：
-      - [FREE-CHATGPT-API](https://github.com/popjane/free_chatgpt_api)
-      - [GPT-API-free](https://github.com/chatanywhere/GPT_API_free)
+      - [Chat Nio](https://github.com/zmh-program/chatnio)
       - [Gue API](https://api.taobeiv.cn)
       - [MAX API](https://api.7xnn.cn)
       - [AIUM](https://aium.cc)
       - [GeekAPI](https://geekapi.ai)
+      - [FREE-CHATGPT-API](https://github.com/popjane/free_chatgpt_api)
+      - [GPT-API-free](https://github.com/chatanywhere/GPT_API_free)
       - ……
 
    - 用自然语言简单描述你的需求，例如：
