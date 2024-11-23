@@ -95,7 +95,15 @@ class FFmpegWidget(QWidget):
 
     # QSS样式
     def apply_styles(self):
-        qss_content = open(os.path.join(os.getcwd(), 'style.qss')).read()
+        def resource_path(relative_path):
+            """获取qss的绝对路径，适配打包和未打包环境"""
+            if getattr(sys, 'frozen', False):
+                base_path = sys._MEIPASS
+            else:
+                base_path = os.path.abspath(".")
+            return os.path.join(base_path, relative_path)
+
+        qss_content = open(resource_path('style.qss')).read()
         self.setStyleSheet(qss_content)
 
     # 获取图标

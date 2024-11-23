@@ -1,0 +1,1 @@
+pyinstaller --onefile --noconsole --icon=icon.ico --name "Chat FFmpeg GUI" --add-data "style.qss;." main.py
